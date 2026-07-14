@@ -1,5 +1,76 @@
 # Compression-Tree Tokenizer Experiment
 
+## Implementation status
+
+This plan has been split into implementation subtasks. The repository now contains a working tokenizer-only v1 focused on correctness, serialization and analysis. Neural training-runner integration is intentionally deferred until tokenizer-only validation produces useful results.
+
+### Completed v1 subtasks
+
+1. Project scaffold
+   - Added `pyproject.toml` with `src/` package layout and pytest configuration.
+   - Added `src/prefix_tokenizer/` and `src/experiment/` packages.
+
+2. Prefix-tree tokenizer core
+   - Implemented complete 256-way trie nodes and vocabulary layout calculation.
+   - Implemented deterministic phrase-token ID assignment.
+   - Implemented byte and UTF-8 text encode/decode APIs.
+   - Implemented bounded byte-tail tokens for documents ending inside an internal trie state.
+   - Implemented reserved-ID rejection during decoding.
+
+3. Tree builders
+   - Implemented memoryless byte Tunstall-style builder.
+   - Implemented batched corpus-count builder using emitted-leaf frequency.
+   - Implemented deterministic candidate ordering.
+
+4. Serialization
+   - Implemented `save_pretrained` / `from_pretrained`.
+   - Exported `tokenizer.json`, `phrases.bin`, `tree.bin` and `metadata.json`.
+   - Included corpus fingerprint helper and construction metadata support.
+
+5. Tokenizer-only commands
+   - `python -m experiment.train_tokenizer`
+   - `python -m experiment.verify_tokenizer`
+   - `python -m experiment.analyze_tokenizers`
+   - `python -m experiment.preprocess`
+
+6. Tests
+   - Exhaustive byte round trips for lengths 0, 1 and 2.
+   - Random byte round trips.
+   - UTF-8 text round trips.
+   - Tail-token framing.
+   - Tree invariants and reserved-ID rejection.
+   - Serialization round trip.
+   - Phrase-token sequence uniqueness smoke test.
+
+### Verification run
+
+1. Unit tests: `pytest -q`
+   - Result: `9 passed`.
+
+2. CLI smoke test with `PYTHONPATH=src`
+   - Trained a 1025-ID prefix tokenizer on a tiny corpus.
+   - Verified exhaustive short-byte and random round trips.
+   - Wrote tokenization analysis JSON.
+   - Wrote fixed-length preprocessed JSONL blocks.
+
+### Deferred subtasks
+
+1. Hugging Face `PreTrainedTokenizerBase` compatibility beyond the current lightweight adapter.
+2. Reference BPE tokenizer training and comparison.
+3. Raw-byte tokenizer baseline command.
+4. Full pair-transition utilization and entropy analysis.
+5. Hugging Face Transformers causal-LM training runner.
+6. CLM bits-per-byte evaluation runner.
+7. Translation runner integration.
+8. Large experiment matrix, multiple seeds and paper-scale reproductions.
+
+### Immediate next subtasks
+
+1. Add a reference BPE path using `tokenizers` or GPT-2 assets.
+2. Expand `analyze_tokenizers` with pair entropy, active-ID utilization and multilingual reports.
+3. Add a small checked-in sample corpus/config for reproducible examples.
+4. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
+
 ## 1. Purpose
 
 Implement a static, byte-level, variable-to-fixed tokenizer based on a complete prefix parsing tree, then substitute it for BPE in existing Transformer and GPT training runners.
