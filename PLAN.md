@@ -47,6 +47,7 @@ This plan has been split into implementation subtasks. The repository now contai
 7. Tokenizer analysis and examples
    - Added active-ID utilization, adjacent-pair utilization, pair entropy and unigram frequency metrics.
    - Added checked-in sample corpus and dataset config for reproducible smoke commands.
+   - Added multilingual/grouped reporting to tokenizer analysis configs.
 
 ### Verification run
 
@@ -72,10 +73,9 @@ This plan has been split into implementation subtasks. The repository now contai
 
 ### Immediate next subtasks
 
-1. Add multilingual report grouping to `analyze_tokenizers`.
-2. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
-3. Add raw-byte tokenizer baseline command.
-4. Expand reference BPE validation against GPT-2 assets where available.
+1. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
+2. Add raw-byte tokenizer baseline command.
+3. Expand reference BPE validation against GPT-2 assets where available.
 
 ## 1. Purpose
 
