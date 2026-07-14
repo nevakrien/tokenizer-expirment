@@ -7,11 +7,12 @@ from prefix_tokenizer import PrefixTreeTokenizer, build_corpus_count_tree, build
 from prefix_tokenizer.serialization import corpus_sha256, save_tokenizer
 
 from .common import load_documents
+from .reference_bpe import ReferenceBPETokenizer
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--type", choices=["prefix_tree", "memoryless"], default="prefix_tree")
+    parser.add_argument("--type", choices=["prefix_tree", "memoryless", "bpe"], default="prefix_tree")
     parser.add_argument("--algorithm", choices=["corpus_count_batched", "memoryless"], default="corpus_count_batched")
     parser.add_argument("--dataset-config")
     parser.add_argument("--input-files", nargs="*")
@@ -23,6 +24,14 @@ def main() -> None:
     args = parser.parse_args()
 
     documents = load_documents(args.input_files, args.dataset_config)
+    if args.type == "bpe":
+        tokenizer = ReferenceBPETokenizer.train(documents, vocab_size=args.vocab_size)
+        tokenizer.save_pretrained(
+            Path(args.output),
+            metadata={"training_corpus_sha256": corpus_sha256(documents), "tokenizer_algorithm": "byte_bpe"},
+        )
+        return
+
     layout = compute_vocab_layout(args.vocab_size, special_token_count=1, tail_token_count=256)
     if args.type == "memoryless" or args.algorithm == "memoryless":
         trie = build_memoryless_tree(b"\n".join(documents), layout.phrase_leaf_count, max_depth=args.max_depth)

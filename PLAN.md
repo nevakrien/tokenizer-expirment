@@ -32,6 +32,7 @@ This plan has been split into implementation subtasks. The repository now contai
    - `python -m experiment.verify_tokenizer`
    - `python -m experiment.analyze_tokenizers`
    - `python -m experiment.preprocess`
+   - Added reference byte-BPE training/loading through `--type bpe`.
 
 6. Tests
    - Exhaustive byte round trips for lengths 0, 1 and 2.
@@ -41,6 +42,11 @@ This plan has been split into implementation subtasks. The repository now contai
    - Tree invariants and reserved-ID rejection.
    - Serialization round trip.
    - Phrase-token sequence uniqueness smoke test.
+   - Reference byte-BPE train/save/load byte round trip.
+
+7. Tokenizer analysis and examples
+   - Added active-ID utilization, adjacent-pair utilization, pair entropy and unigram frequency metrics.
+   - Added checked-in sample corpus and dataset config for reproducible smoke commands.
 
 ### Verification run
 
@@ -66,10 +72,10 @@ This plan has been split into implementation subtasks. The repository now contai
 
 ### Immediate next subtasks
 
-1. Add a reference BPE path using `tokenizers` or GPT-2 assets.
-2. Expand `analyze_tokenizers` with pair entropy, active-ID utilization and multilingual reports.
-3. Add a small checked-in sample corpus/config for reproducible examples.
-4. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
+1. Add multilingual report grouping to `analyze_tokenizers`.
+2. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
+3. Add raw-byte tokenizer baseline command.
+4. Expand reference BPE validation against GPT-2 assets where available.
 
 ## 1. Purpose
 

@@ -1,0 +1,4 @@
+Hello tokenizer experiment.
+This tiny corpus is only for reproducible smoke tests and examples.
+Byte-level tokenizers should round-trip UTF-8 text like שלום, 你好, and Привет.
+Repeated text helps tiny BPE examples learn merges: token token token tokenizer tokenizer.
