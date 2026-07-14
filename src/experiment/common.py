@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -58,7 +59,31 @@ def _read_records(path: Path, group: str | None) -> list[DocumentRecord]:
     if path.is_dir():
         for child in sorted(path.rglob("*")):
             if child.is_file():
-                records.append(DocumentRecord(data=child.read_bytes(), path=str(child), group=group))
+                records.extend(_read_records(child, group))
+    elif path.suffix == ".jsonl":
+        records.extend(_read_jsonl_records(path, group))
     else:
         records.append(DocumentRecord(data=path.read_bytes(), path=str(path), group=group))
     return records
+
+
+def _read_jsonl_records(path: Path, group: str | None) -> list[DocumentRecord]:
+    records: list[DocumentRecord] = []
+    with path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            text = _jsonl_text(item, path, line_number)
+            records.append(DocumentRecord(data=text.encode("utf-8"), path=f"{path}:{line_number}", group=group))
+    return records
+
+
+def _jsonl_text(item: Any, path: Path, line_number: int) -> str:
+    if isinstance(item, str):
+        return item
+    if isinstance(item, dict):
+        text = item.get("text")
+        if isinstance(text, str):
+            return text
+    raise ValueError(f"{path}:{line_number}: JSONL records must be strings or objects with a string 'text' field")
