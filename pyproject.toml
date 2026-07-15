@@ -12,7 +12,6 @@ dependencies = []
 [project.optional-dependencies]
 test = ["pytest>=8"]
 bpe = ["tokenizers>=0.15"]
-clm = ["torch>=2", "transformers>=4.40", "accelerate>=0.26.0"]
 data = ["datasets>=2.18"]
 
 [tool.setuptools]

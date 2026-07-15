@@ -66,14 +66,14 @@ This plan has been split into implementation subtasks. The repository now contai
 2. Reference BPE tokenizer training and comparison.
 3. Raw-byte tokenizer baseline command.
 4. Full pair-transition utilization and entropy analysis.
-5. Hugging Face Transformers causal-LM training runner.
-6. CLM bits-per-byte evaluation runner.
+5. Spec-matching model training runner. Do not add a placeholder runner that can be mistaken for paper reproduction.
+6. Byte-normalized model evaluation runner tied to the spec-matching trainer.
 7. Translation runner integration.
 8. Large experiment matrix, multiple seeds and paper-scale reproductions.
 
 ### Immediate next subtasks
 
-1. Implement a minimal Transformers CLM runner after tokenizer-only metrics are satisfactory.
+1. Define the exact model-training spec before adding any model runner.
 2. Add raw-byte tokenizer baseline command.
 3. Expand reference BPE validation against GPT-2 assets where available.
 
@@ -1211,18 +1211,8 @@ python -m experiment.preprocess \
     --context-length 1024 \
     --output artifacts/datasets/prefix_50257_ctx1024
 
-# Train
-python -m experiment.train_clm \
-    --config configs/models/gpt2_small.yaml \
-    --dataset artifacts/datasets/prefix_50257_ctx1024 \
-    --output runs/gpt2_small_prefix_seed1 \
-    --seed 1
-
-# Evaluate
-python -m experiment.evaluate_clm \
-    --run runs/gpt2_small_prefix_seed1 \
-    --dataset-config configs/data/evaluation.yaml \
-    --output reports/gpt2_small_prefix_seed1
+# Model training and evaluation are intentionally omitted until the runner
+# matches the target paper spec closely enough to avoid misleading results.
 ```
 
 ---
@@ -1252,11 +1242,7 @@ compression-tree-tokenizer/
 │       ├── train_tokenizer.py
 │       ├── verify_tokenizer.py
 │       ├── analyze_tokenizers.py
-│       ├── preprocess.py
-│       ├── train_clm.py
-│       ├── evaluate_clm.py
-│       ├── train_translation.py
-│       └── evaluate_translation.py
+│       └── preprocess.py
 ├── tests/
 │   ├── test_roundtrip.py
 │   ├── test_exhaustive_bytes.py
@@ -1385,9 +1371,9 @@ context length: 1,024
 
 GPT-2’s released tokenizer vocabulary contains 50,257 IDs, and the official repository contains the model and tokenizer code.
 
-Preferred runner:
+Preferred future runner:
 
-* Hugging Face Transformers from-scratch causal-LM training;
+* spec-matching from-scratch causal-LM training;
 * optional minGPT debugging runner.
 
 Comparison:
