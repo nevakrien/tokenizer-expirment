@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from tqdm.auto import tqdm
+
 from prefix_tokenizer.framing import encode_documents, pack_token_blocks
 
 from .common import load_documents
@@ -20,7 +22,10 @@ def main() -> None:
     args = parser.parse_args()
     tokenizer = load_any_tokenizer(args.tokenizer)
     documents = load_documents(args.input_files, args.dataset_config)
-    encoded = encode_documents(tokenizer, documents)
+    encoded = [
+        tokenizer.encode_bytes(document, add_eos=True)
+        for document in tqdm(documents, desc="Encoding documents", unit="document")
+    ]
     blocks = pack_token_blocks(encoded, args.context_length)
     total_tokens = sum(len(document) for document in encoded)
     output = Path(args.output)

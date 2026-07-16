@@ -49,7 +49,7 @@ def save_tokenizer(tokenizer: PrefixTreeTokenizer, path: Path, *, metadata: dict
         "model_vocab_size": tokenizer.vocab_size,
         "phrase_leaf_count": len(phrase_hex),
         "tail_token_count": 256 if tokenizer.tail_token_start is not None else 0,
-        "special_token_count": 1,
+        "special_token_count": 1 + int(tokenizer.bos_token_id is not None) + int(tokenizer.pad_token_id is not None),
         "reserved_token_count": len(tokenizer.reserved_ids or []),
         "maximum_phrase_bytes": tokenizer.trie.max_depth(),
         "average_phrase_bytes_training": _average_phrase_bytes(tokenizer),

@@ -7,6 +7,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from tqdm.auto import tqdm
+
 from .common import DocumentRecord, load_document_records
 from .reference_bpe import ReferenceBPETokenizer, load_any_tokenizer
 
@@ -24,7 +26,7 @@ def main() -> None:
     report = {"document_count": len(documents), "tokenizers": []}
     if grouped_records:
         report["groups"] = {group: {"document_count": len(group_records)} for group, group_records in sorted(grouped_records.items())}
-    for tokenizer_path in args.tokenizers:
+    for tokenizer_path in tqdm(args.tokenizers, desc="Analyzing tokenizers", unit="tokenizer"):
         tokenizer = load_any_tokenizer(tokenizer_path)
         is_bpe = isinstance(tokenizer, ReferenceBPETokenizer)
         if is_bpe:
@@ -74,7 +76,7 @@ def _analyze_documents(
     total_tokens = 0
     observed_ids = set()
     total_bytes = sum(len(document) for document in documents)
-    for document in documents:
+    for document in tqdm(documents, desc=f"Encoding {Path(tokenizer_path).name}", unit="document", leave=False):
         ids = tokenizer.encode_bytes(document)
         token_lengths.append(len(ids))
         total_tokens += len(ids)

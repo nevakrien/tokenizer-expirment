@@ -7,7 +7,13 @@ from collections import Counter
 from .tree import Trie, TrieNode
 
 
-def build_memoryless_tree(data: bytes, phrase_leaf_count: int, alpha: float = 1.0, max_depth: int = 64) -> Trie:
+def build_memoryless_tree(
+    data: bytes,
+    phrase_leaf_count: int,
+    alpha: float = 1.0,
+    max_depth: int = 64,
+    show_progress: bool = False,
+) -> Trie:
     if phrase_leaf_count < 256 or (phrase_leaf_count - 256) % 255 != 0:
         raise ValueError("phrase_leaf_count must be 256 + 255*k")
     counts = Counter(data)
@@ -19,6 +25,11 @@ def build_memoryless_tree(data: bytes, phrase_leaf_count: int, alpha: float = 1.
         score = log_probs[node.phrase[-1]]
         heapq.heappush(heap, (-score, len(node.phrase), node.phrase, node.creation_index, node))
     leaf_count = 256
+    progress = None
+    if show_progress:
+        from tqdm.auto import tqdm
+
+        progress = tqdm(total=(phrase_leaf_count - 256) // 255, desc="Building memoryless tree", unit="expansion")
     while leaf_count + 255 <= phrase_leaf_count:
         if not heap:
             break
@@ -32,4 +43,8 @@ def build_memoryless_tree(data: bytes, phrase_leaf_count: int, alpha: float = 1.
             child_score = score + log_probs[byte]
             heapq.heappush(heap, (-child_score, len(child.phrase), child.phrase, child.creation_index, child))
         leaf_count += 255
+        if progress is not None:
+            progress.update(1)
+    if progress is not None:
+        progress.close()
     return trie

@@ -21,25 +21,48 @@ def main() -> None:
     parser.add_argument("--expansion-batch-size", type=int, default=64)
     parser.add_argument("--max-depth", type=int, default=64)
     parser.add_argument("--tail-byte-tokens", action="store_true", default=True)
+    parser.add_argument(
+        "--translation-special-tokens",
+        action="store_true",
+        help="Reserve distinct EOS, BOS, and PAD IDs within the requested vocabulary.",
+    )
     args = parser.parse_args()
 
     documents = load_documents(args.input_files, args.dataset_config)
+    special_token_count = 3 if args.translation_special_tokens else 1
     if args.type == "bpe":
-        tokenizer = ReferenceBPETokenizer.train(documents, vocab_size=args.vocab_size)
+        tokenizer = ReferenceBPETokenizer.train(
+            documents,
+            vocab_size=args.vocab_size,
+            special_token_count=special_token_count,
+            show_progress=True,
+        )
         tokenizer.save_pretrained(
             Path(args.output),
             metadata={"training_corpus_sha256": corpus_sha256(documents), "tokenizer_algorithm": "byte_bpe"},
         )
         return
 
-    layout = compute_vocab_layout(args.vocab_size, special_token_count=1, tail_token_count=256)
+    layout = compute_vocab_layout(args.vocab_size, special_token_count=special_token_count, tail_token_count=256)
     if args.type == "memoryless" or args.algorithm == "memoryless":
-        trie = build_memoryless_tree(b"\n".join(documents), layout.phrase_leaf_count, max_depth=args.max_depth)
+        trie = build_memoryless_tree(
+            b"\n".join(documents), layout.phrase_leaf_count, max_depth=args.max_depth, show_progress=True
+        )
         algorithm = "memoryless"
     else:
-        trie = build_corpus_count_tree(documents, layout.phrase_leaf_count, args.expansion_batch_size, args.max_depth)
+        trie = build_corpus_count_tree(
+            documents,
+            layout.phrase_leaf_count,
+            args.expansion_batch_size,
+            args.max_depth,
+            show_progress=True,
+        )
         algorithm = "corpus_count_batched"
-    tokenizer = PrefixTreeTokenizer.from_trie(trie, vocab_size=args.vocab_size)
+    tokenizer = PrefixTreeTokenizer.from_trie(
+        trie,
+        vocab_size=args.vocab_size,
+        special_token_count=special_token_count,
+    )
     save_tokenizer(
         tokenizer,
         Path(args.output),

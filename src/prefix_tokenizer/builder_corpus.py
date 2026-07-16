@@ -28,12 +28,18 @@ def build_corpus_count_tree(
     phrase_leaf_count: int,
     expansion_batch_size: int = 64,
     max_depth: int = 64,
+    show_progress: bool = False,
 ) -> Trie:
     if phrase_leaf_count < 256 or (phrase_leaf_count - 256) % 255 != 0:
         raise ValueError("phrase_leaf_count must be 256 + 255*k")
     trie = Trie.initial_bytes()
     leaf_count = 256
     batch_size = max(1, expansion_batch_size)
+    progress = None
+    if show_progress:
+        from tqdm.auto import tqdm
+
+        progress = tqdm(total=(phrase_leaf_count - 256) // 255, desc="Building prefix tree", unit="expansion")
     while leaf_count + 255 <= phrase_leaf_count:
         counts = _scan_documents(trie, documents)
         for node in trie.leaves():
@@ -49,7 +55,11 @@ def build_corpus_count_tree(
         if expanded == 0:
             break
         leaf_count += 255 * expanded
+        if progress is not None:
+            progress.update(expanded)
     counts = _scan_documents(trie, documents)
     for node in trie.leaves():
         node.corpus_count = counts.get(node, 0)
+    if progress is not None:
+        progress.close()
     return trie

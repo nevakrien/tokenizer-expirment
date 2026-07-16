@@ -7,12 +7,13 @@ name = "tokenizer-expirment"
 version = "0.1.0"
 description = "Compression-tree tokenizer experiments"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["tqdm>=4.66"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
 bpe = ["tokenizers>=0.15"]
 data = ["datasets>=2.18"]
+translation = ["torch>=2.0", "datasets>=2.18", "tokenizers>=0.15", "sacrebleu>=2.4"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

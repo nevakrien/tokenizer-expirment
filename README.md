@@ -9,22 +9,34 @@ this DOES actually work which implies something is at least somewhat broken abou
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
-python -m pip install -e '.[test,bpe,data]'
+python -m pip install -e '.[test,bpe,data,translation]'
 pytest -q
 ```
 
 ## what is currently reproducible
 
-This repo currently supports tokenizer-only experiments. It does not currently contain a valid GPT-1/GPT-2/Transformer paper reproduction trainer.
+The repository includes a modern PyTorch reproduction of the Transformer-base WMT 2014 English-German experiment from *Attention Is All You Need*. It runs a matched shared byte-BPE baseline and shared prefix-tree tokenizer experiment.
 
 | Target | Status | What to compare |
 | --- | --- | --- |
 | GPT-1-style tokenizer setup | Tokenizer-only implemented | 40,000-ID BPE vs prefix tree |
 | GPT-2-small-style tokenizer setup | Tokenizer-only implemented | 50,257-ID BPE vs prefix tree |
 | Full GPT-1/GPT-2 paper-scale training | Not implemented | Needs a spec-matching trainer before any reproduction claim |
-| Attention Is All You Need translation | Not implemented | No train/eval entrypoint is present yet |
+| Attention Is All You Need translation | Implemented | WMT14 En-De, Transformer-base, BPE vs prefix tree |
 
-Do not compare token perplexity across tokenizers as the main result. Different tokenizers have different token units. A future model runner must report a byte-normalized metric and match the target paper spec before being described as reproduction work.
+The WMT runner matches the paper's dataset, Transformer-base dimensions, tied embeddings, sinusoidal positions, optimizer, schedule, dropout, label smoothing, 25K source/target token batches, 100K steps, beam size 4, length penalty 0.6, and five-checkpoint averaging. It uses maintained PyTorch code and this project's reversible byte-BPE rather than the original Tensor2Tensor/Sennrich preprocessing code. That tokenizer difference is intentional and recorded in run metadata.
+
+## WMT14 paper reproduction
+
+Install dependencies, then run both complete training jobs:
+
+```bash
+scripts/run_wmt14_reproduction.sh
+```
+
+The script downloads `wmt/wmt14` English-German, trains both shared 37K tokenizers on the training split only, preprocesses the same aligned pairs, runs the BPE and prefix-tree Transformer-base jobs sequentially, and evaluates both on `newstest2014` with SacreBLEU. Validation uses `newstest2013`.
+
+The script has fixed reproduction settings: the complete dataset, a shared 37K vocabulary, Transformer-base, 25K source and target tokens per global batch, and 100K optimization steps. It uses every visible GPU and runs in full precision. The paper used eight P100 GPUs, so running this requires substantial compute. Interrupted runs resume from their latest checkpoint automatically. Outputs are written under `artifacts/translation_runs/`; BLEU reports are written under `reports/`.
 
 ## tokenizer commands
 

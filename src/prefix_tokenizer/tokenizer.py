@@ -33,12 +33,16 @@ class PrefixTreeTokenizer:
         tail_token_start = next_id if tail_token_count else None
         next_id += tail_token_count
         eos_token_id = next_id
+        bos_token_id = next_id + 1 if special_token_count >= 2 else None
+        pad_token_id = next_id + 2 if special_token_count >= 3 else None
         next_id += special_token_count
         reserved_ids = set(range(next_id, vocab_size))
         tokenizer = cls(
             trie=trie,
             vocab_size=vocab_size,
             eos_token_id=eos_token_id,
+            bos_token_id=bos_token_id,
+            pad_token_id=pad_token_id,
             tail_token_start=tail_token_start,
             reserved_ids=reserved_ids,
         )

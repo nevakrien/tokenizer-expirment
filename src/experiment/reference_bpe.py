@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 EOS_TOKEN = "<|endoftext|>"
+BOS_TOKEN = "<|startoftext|>"
+PAD_TOKEN = "<|pad|>"
 
 
 def bytes_to_unicode() -> dict[int, str]:
@@ -33,20 +35,29 @@ class ReferenceBPETokenizer:
         tokenizer,
         vocab_size: int,
         eos_token_id: int,
+        bos_token_id: int | None = None,
+        pad_token_id: int | None = None,
         reserved_ids: set[int] | None = None,
     ) -> None:
         self.tokenizer = tokenizer
         self.vocab_size = vocab_size
         self.eos_token_id = eos_token_id
-        self.bos_token_id = None
-        self.pad_token_id = None
+        self.bos_token_id = bos_token_id
+        self.pad_token_id = pad_token_id
         self.unk_token_id = None
         self.reserved_ids = reserved_ids or set()
         vocab = tokenizer.get_vocab()
         self._token_by_id = {token_id: token for token, token_id in vocab.items()}
 
     @classmethod
-    def train(cls, documents: list[bytes], vocab_size: int) -> "ReferenceBPETokenizer":
+    def train(
+        cls,
+        documents: list[bytes],
+        vocab_size: int,
+        *,
+        special_token_count: int = 1,
+        show_progress: bool = False,
+    ) -> "ReferenceBPETokenizer":
         try:
             from tokenizers import Tokenizer
             from tokenizers.models import BPE
@@ -55,14 +66,23 @@ class ReferenceBPETokenizer:
             raise RuntimeError("training BPE tokenizers requires the optional 'tokenizers' package") from exc
 
         tokenizer = Tokenizer(BPE())
+        if special_token_count not in {1, 3}:
+            raise ValueError("BPE supports either EOS only or EOS/BOS/PAD special tokens")
+        special_tokens = [EOS_TOKEN]
+        if special_token_count == 3:
+            special_tokens.extend([BOS_TOKEN, PAD_TOKEN])
         trainer = BpeTrainer(
             vocab_size=vocab_size,
-            special_tokens=[EOS_TOKEN],
+            special_tokens=special_tokens,
             initial_alphabet=list(BYTE_TO_UNICODE.values()),
             max_token_length=32,
-            show_progress=False,
+            show_progress=show_progress,
         )
-        tokenizer.train_from_iterator((_bytes_to_text(document) for document in documents), trainer=trainer)
+        tokenizer.train_from_iterator(
+            (_bytes_to_text(document) for document in documents),
+            trainer=trainer,
+            length=len(documents),
+        )
         eos_token_id = tokenizer.token_to_id(EOS_TOKEN)
         if eos_token_id is None:
             raise RuntimeError("BPE trainer did not assign an EOS token")
@@ -70,7 +90,14 @@ class ReferenceBPETokenizer:
         if actual_vocab_size > vocab_size:
             raise ValueError(f"vocab_size must be at least {actual_vocab_size} for byte-BPE")
         reserved_ids = set(range(actual_vocab_size, vocab_size))
-        return cls(tokenizer, vocab_size=vocab_size, eos_token_id=eos_token_id, reserved_ids=reserved_ids)
+        return cls(
+            tokenizer,
+            vocab_size=vocab_size,
+            eos_token_id=eos_token_id,
+            bos_token_id=tokenizer.token_to_id(BOS_TOKEN),
+            pad_token_id=tokenizer.token_to_id(PAD_TOKEN),
+            reserved_ids=reserved_ids,
+        )
 
     @classmethod
     def from_pretrained(cls, path: str | Path) -> "ReferenceBPETokenizer":
@@ -89,6 +116,8 @@ class ReferenceBPETokenizer:
             tokenizer,
             vocab_size=metadata["model_vocab_size"],
             eos_token_id=eos_token_id,
+            bos_token_id=tokenizer.token_to_id(BOS_TOKEN),
+            pad_token_id=tokenizer.token_to_id(PAD_TOKEN),
             reserved_ids=set(metadata.get("reserved_ids", [])),
         )
 
@@ -101,7 +130,7 @@ class ReferenceBPETokenizer:
             "format_version": 1,
             "model_vocab_size": self.vocab_size,
             "active_token_count": self.tokenizer.get_vocab_size(),
-            "special_token_count": 1,
+            "special_token_count": 1 + int(self.bos_token_id is not None) + int(self.pad_token_id is not None),
             "reserved_token_count": len(self.reserved_ids),
             "reserved_ids": sorted(self.reserved_ids),
         }
@@ -124,7 +153,7 @@ class ReferenceBPETokenizer:
     def decode_bytes(self, token_ids: list[int], skip_special_tokens: bool = False) -> bytes:
         text = []
         for token_id in token_ids:
-            if token_id == self.eos_token_id:
+            if token_id in {self.eos_token_id, self.bos_token_id, self.pad_token_id}:
                 if skip_special_tokens:
                     continue
                 continue
